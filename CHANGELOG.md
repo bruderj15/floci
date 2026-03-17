@@ -1,3 +1,13 @@
+## [1.0.3-dev.1](https://github.com/hectorvent/floci/compare/1.0.2...1.0.3-dev.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* adding build for development branch ([ae15f4c](https://github.com/hectorvent/floci/commit/ae15f4c79c7a28ba50c0426be5cdf1446cdafdeb))
+* adding build for development branch ([95cb2aa](https://github.com/hectorvent/floci/commit/95cb2aaf1e63cf3a8b359bd5ab1c0b9f6cfb506b))
+* improving native image compilation time ([49c69db](https://github.com/hectorvent/floci/commit/49c69db32314f7e2f94114d86d50e88b3e2a3884))
+* update git pages config for the docs ([286bef9](https://github.com/hectorvent/floci/commit/286bef9dd7bfcf162f2ca5c2c030ea280e0b6de6))
+
 ## [1.0.2](https://github.com/hectorvent/floci/compare/1.0.1...1.0.2) (2026-03-15)
 
 
