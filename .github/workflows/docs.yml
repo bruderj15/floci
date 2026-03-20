@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - develop
     paths:
       - "docs/**"
       - "mkdocs.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write

@@ -2,7 +2,7 @@
 
 Floci is MIT licensed and welcomes contributions of all kinds.
 
-## Ways to Help
+## Ways to Help 
 
 - **Bug reports** — open a [GitHub issue](https://github.com/hectorvent/floci/issues/new?template=bug_report.md) with a minimal reproduction
 - **Missing API actions** — open a [feature request](https://github.com/hectorvent/floci/issues/new?template=feature_request.md)

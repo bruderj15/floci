@@ -1,16 +1,23 @@
-FROM quay.io/quarkus/quarkus-micro-image:2.0
-WORKDIR /app
-
-VOLUME /app/data
-
-EXPOSE 4566
+FROM registry.access.redhat.com/ubi9-minimal:9.7
 
 ARG VERSION=latest
 ARG BINARY_FILE=application
 
 ENV FLOCI_VERSION=${VERSION}
 
-COPY ${BINARY_FILE} /app/application
-RUN chmod +x /app/application
+WORKDIR /app
 
-ENTRYPOINT ["/app/application"]
+VOLUME /app/data
+
+RUN chown 1001 /app \
+    && chmod "g+rwX" /app \
+    && chown 1001:root /app
+
+COPY --chown=1001:root target/*.properties target/*.so /app/
+COPY --chown=1001:root target/*-runner /app/application
+
+EXPOSE 4566
+
+USER 1001
+
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

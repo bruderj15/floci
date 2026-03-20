@@ -38,6 +38,41 @@ floci:
         mode: memory
 ```
 
+## Per-Service Storage Overrides
+
+Override the global mode for individual services via environment variables:
+
+| Variable                                                        | Default  | Description                            |
+|-----------------------------------------------------------------|----------|----------------------------------------|
+| `FLOCI_STORAGE_SERVICES_SSM_MODE`                               | `memory` | SSM storage mode                       |
+| `FLOCI_STORAGE_SERVICES_SSM_FLUSH_INTERVAL_MS`                  | `5000`   | SSM flush interval (ms)                |
+| `FLOCI_STORAGE_SERVICES_SQS_MODE`                               | `memory` | SQS storage mode                       |
+| `FLOCI_STORAGE_SERVICES_SQS_PERSIST_ON_SHUTDOWN`                | `true`   | Flush SQS messages to disk on shutdown |
+| `FLOCI_STORAGE_SERVICES_S3_MODE`                                | `hybrid` | S3 storage mode                        |
+| `FLOCI_STORAGE_SERVICES_S3_CACHE_SIZE_MB`                       | `100`    | S3 in-memory cache size (MB)           |
+| `FLOCI_STORAGE_SERVICES_DYNAMODB_MODE`                          | `memory` | DynamoDB storage mode                  |
+| `FLOCI_STORAGE_SERVICES_DYNAMODB_FLUSH_INTERVAL_MS`             | `5000`   | DynamoDB flush interval (ms)           |
+| `FLOCI_STORAGE_SERVICES_SNS_MODE`                               | `memory` | SNS storage mode                       |
+| `FLOCI_STORAGE_SERVICES_SNS_FLUSH_INTERVAL_MS`                  | `5000`   | SNS flush interval (ms)                |
+| `FLOCI_STORAGE_SERVICES_LAMBDA_MODE`                            | `memory` | Lambda storage mode                    |
+| `FLOCI_STORAGE_SERVICES_LAMBDA_FLUSH_INTERVAL_MS`               | `5000`   | Lambda flush interval (ms)             |
+| `FLOCI_STORAGE_SERVICES_APIGATEWAY_MODE`                        | `memory` | API Gateway (v1) storage mode          |
+| `FLOCI_STORAGE_SERVICES_APIGATEWAY_FLUSH_INTERVAL_MS`           | `5000`   | API Gateway (v1) flush interval (ms)   |
+| `FLOCI_STORAGE_SERVICES_APIGATEWAYV2_MODE`                      | `memory` | API Gateway (v2) storage mode          |
+| `FLOCI_STORAGE_SERVICES_APIGATEWAYV2_FLUSH_INTERVAL_MS`         | `5000`   | API Gateway (v2) flush interval (ms)   |
+| `FLOCI_STORAGE_SERVICES_IAM_MODE`                               | `memory` | IAM storage mode                       |
+| `FLOCI_STORAGE_SERVICES_IAM_FLUSH_INTERVAL_MS`                  | `5000`   | IAM flush interval (ms)                |
+| `FLOCI_STORAGE_SERVICES_RDS_MODE`                               | `memory` | RDS storage mode                       |
+| `FLOCI_STORAGE_SERVICES_RDS_FLUSH_INTERVAL_MS`                  | `5000`   | RDS flush interval (ms)                |
+| `FLOCI_STORAGE_SERVICES_EVENTBRIDGE_MODE`                       | `memory` | EventBridge storage mode               |
+| `FLOCI_STORAGE_SERVICES_EVENTBRIDGE_FLUSH_INTERVAL_MS`          | `5000`   | EventBridge flush interval (ms)        |
+| `FLOCI_STORAGE_SERVICES_CLOUDWATCHLOGS_MODE`                    | `memory` | CloudWatch Logs storage mode           |
+| `FLOCI_STORAGE_SERVICES_CLOUDWATCHLOGS_FLUSH_INTERVAL_MS`       | `5000`   | CloudWatch Logs flush interval (ms)    |
+| `FLOCI_STORAGE_SERVICES_CLOUDWATCHMETRICS_MODE`                 | `memory` | CloudWatch Metrics storage mode        |
+| `FLOCI_STORAGE_SERVICES_CLOUDWATCHMETRICS_FLUSH_INTERVAL_MS`    | `5000`   | CloudWatch Metrics flush interval (ms) |
+| `FLOCI_STORAGE_SERVICES_SECRETSMANAGER_MODE`                    | `memory` | Secrets Manager storage mode           |
+| `FLOCI_STORAGE_SERVICES_SECRETSMANAGER_FLUSH_INTERVAL_MS`       | `5000`   | Secrets Manager flush interval (ms)    |
+
 ## Environment Variable Override
 
 ```bash
