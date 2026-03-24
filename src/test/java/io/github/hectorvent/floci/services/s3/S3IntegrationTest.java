@@ -237,7 +237,8 @@ class S3IntegrationTest {
             .body(containsString("InvalidArgument"));
     }
 
-    @Test(17)
+    @Test
+    @Order(17)
     void getNonExistentBucket() {
         given()
         .when()
@@ -247,7 +248,8 @@ class S3IntegrationTest {
             .body(containsString("NoSuchBucket"));
     }
 
-    @Test(18)
+    @Test
+    @Order(18)
     void putLargeObject() {
         // 22 MB – exceeds the old Jackson 20 MB maxStringLength default
         byte[] largeBody = new byte[22 * 1024 * 1024];
@@ -279,5 +281,5 @@ class S3IntegrationTest {
 
         // Cleanup
         given().delete("/large-object-bucket/large-file.bin");
-        given().delete("/large-object-bucket");    
+        given().delete("/large-object-bucket");
 }
