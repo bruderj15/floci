@@ -1,3 +1,10 @@
+## [1.0.11](https://github.com/hectorvent/floci/compare/1.0.10...1.0.11) (2026-03-24)
+
+
+### Bug Fixes
+
+* add S3 GetObjectAttributes and metadata parity ([#29](https://github.com/hectorvent/floci/issues/29)) ([7d5890a](https://github.com/hectorvent/floci/commit/7d5890a6440ca72d565f3d987afa380825ba5861))
+
 ## [1.0.10](https://github.com/hectorvent/floci/compare/1.0.9...1.0.10) (2026-03-24)
 
 

@@ -52,6 +52,8 @@ class S3IntegrationTest {
     void putObject() {
         given()
             .contentType("text/plain")
+            .header("x-amz-meta-owner", "team-a")
+            .header("x-amz-storage-class", "STANDARD_IA")
             .body("Hello World from S3!")
         .when()
             .put("/test-bucket/greeting.txt")
@@ -70,11 +72,29 @@ class S3IntegrationTest {
             .statusCode(200)
             .header("ETag", notNullValue())
             .header("Content-Length", notNullValue())
+            .header("x-amz-meta-owner", equalTo("team-a"))
+            .header("x-amz-storage-class", equalTo("STANDARD_IA"))
+            .header("x-amz-checksum-sha256", notNullValue())
             .body(equalTo("Hello World from S3!"));
     }
 
     @Test
     @Order(6)
+    void getObjectAttributes() {
+        given()
+            .header("x-amz-object-attributes", "ETag,ObjectSize,StorageClass,Checksum")
+        .when()
+            .get("/test-bucket/greeting.txt?attributes")
+        .then()
+            .statusCode(200)
+            .body(containsString("<GetObjectAttributesResponse"))
+            .body(containsString("<StorageClass>STANDARD_IA</StorageClass>"))
+            .body(containsString("<ObjectSize>20</ObjectSize>"))
+            .body(containsString("<ChecksumSHA256>"));
+    }
+
+    @Test
+    @Order(7)
     void headObject() {
         given()
         .when()
@@ -82,11 +102,14 @@ class S3IntegrationTest {
         .then()
             .statusCode(200)
             .header("ETag", notNullValue())
-            .header("Content-Length", notNullValue());
+            .header("Content-Length", notNullValue())
+            .header("x-amz-meta-owner", equalTo("team-a"))
+            .header("x-amz-storage-class", equalTo("STANDARD_IA"))
+            .header("x-amz-checksum-sha256", notNullValue());
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     void getObjectNotFound() {
         given()
         .when()
@@ -97,7 +120,7 @@ class S3IntegrationTest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     void putAnotherObject() {
         given()
             .contentType("application/json")
@@ -109,7 +132,7 @@ class S3IntegrationTest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     void listObjects() {
         given()
         .when()
@@ -121,7 +144,7 @@ class S3IntegrationTest {
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     void listObjectsWithPrefix() {
         given()
             .queryParam("prefix", "data/")
@@ -134,10 +157,14 @@ class S3IntegrationTest {
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     void copyObject() {
         given()
             .header("x-amz-copy-source", "/test-bucket/greeting.txt")
+            .header("x-amz-metadata-directive", "REPLACE")
+            .header("x-amz-meta-owner", "team-b")
+            .header("x-amz-storage-class", "GLACIER")
+            .contentType("application/json")
         .when()
             .put("/test-bucket/greeting-copy.txt")
         .then()
@@ -150,11 +177,13 @@ class S3IntegrationTest {
             .get("/test-bucket/greeting-copy.txt")
         .then()
             .statusCode(200)
+            .header("x-amz-meta-owner", equalTo("team-b"))
+            .header("x-amz-storage-class", equalTo("GLACIER"))
             .body(equalTo("Hello World from S3!"));
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     void deleteObject() {
         given()
         .when()
@@ -171,7 +200,7 @@ class S3IntegrationTest {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     void deleteNonEmptyBucketFails() {
         given()
         .when()
@@ -182,7 +211,7 @@ class S3IntegrationTest {
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     void cleanupAndDeleteBucket() {
         // Delete all objects
         given().delete("/test-bucket/greeting.txt");
@@ -197,7 +226,28 @@ class S3IntegrationTest {
     }
 
     @Test
-    @Order(15)
+    @Order(16)
+    void getObjectAttributesRejectsUnknownSelector() {
+        given()
+            .header("x-amz-object-attributes", "ETag,UnknownThing")
+        .when()
+            .get("/test-bucket/greeting.txt?attributes")
+        .then()
+            .statusCode(400)
+            .body(containsString("InvalidArgument"));
+    }
+
+    @Test(17)
+    void getNonExistentBucket() {
+        given()
+        .when()
+            .get("/nonexistent-bucket")
+        .then()
+            .statusCode(404)
+            .body(containsString("NoSuchBucket"));
+    }
+
+    @Test(18)
     void putLargeObject() {
         // 22 MB – exceeds the old Jackson 20 MB maxStringLength default
         byte[] largeBody = new byte[22 * 1024 * 1024];
@@ -229,16 +279,5 @@ class S3IntegrationTest {
 
         // Cleanup
         given().delete("/large-object-bucket/large-file.bin");
-        given().delete("/large-object-bucket");
-    }
-
-    @Test
-    void getNonExistentBucket() {
-        given()
-        .when()
-            .get("/nonexistent-bucket")
-        .then()
-            .statusCode(404)
-            .body(containsString("NoSuchBucket"));
-    }
+        given().delete("/large-object-bucket");    
 }
