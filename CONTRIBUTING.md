@@ -45,6 +45,16 @@ If you prefer to use your own Maven installation (3.9+), you can use `mvn` inste
 ./mvnw test -Dtest=SsmIntegrationTest#putParameter   # single method
 ```
 
+## Branching Model
+
+Floci uses a **tag-driven release model**. Docker images are never published on PR merge — only when a maintainer pushes a version tag.
+
+| Branch | Purpose | Docker published? |
+|---|---|---|
+| `main` | Integration branch — all PRs merge here. Treated as unstable/nightly. | No (CI tests only) |
+| `release/x.y.x` | Stable line for a minor version. Receives cherry-picked fixes from `main`. | No (CI tests only) |
+| `X.Y.Z` tag | Signals a production release. Triggers the full Docker publish pipeline. | Yes (`x.y.z`, `latest`, `x.y.z-jvm`, `latest-jvm`) |
+
 ## Commit Message Format
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) — semantic-release reads these to generate the changelog and version bumps automatically.
@@ -83,9 +93,48 @@ Always implement the **real AWS wire protocol** — never invent custom endpoint
 
 ## Pull Request Guidelines
 
-- Keep PRs focused — one feature or fix per PR
-- Follow the testing policy below
-- Reference any related issues in the PR description
+1. Branch off `main`: `git checkout -b feature/my-feature`
+2. Open a PR targeting `main`.
+3. CI runs tests automatically — all checks must pass before merge.
+4. Keep PRs focused — one feature or fix per PR.
+5. Reference any related issues in the PR description.
+
+Docker images are never built on contributor PRs, so merging to `main` is always cheap.
+
+## Release Process (maintainers)
+
+### New minor or major release
+
+```bash
+# 1. Create a release branch from main
+git checkout main && git pull
+git checkout -b release/1.2.x
+
+# 2. Push — the semver.yml workflow runs semantic-release automatically,
+#    bumps the version, updates CHANGELOG.md + pom.xml, and pushes tag 1.2.0.
+git push origin release/1.2.x
+
+# 3. The tag push triggers the Docker publish pipeline.
+```
+
+### Patch release on an existing line
+
+```bash
+git checkout release/1.1.x
+git cherry-pick <commit-sha>
+git push origin release/1.1.x
+# semver workflow creates 1.1.x and triggers Docker publish
+```
+
+### Hotfix
+
+1. Fix on `main` via the normal PR process.
+2. Cherry-pick the merge commit onto the relevant `release/x.y.x` branch and push.
+3. If the bug only affects a release branch, open a PR directly against that branch.
+
+### Edge builds
+
+The `edge.yml` workflow publishes a JVM-only `hectorvent/floci:edge` image from `main` every Monday at 00:00 UTC. It can also be triggered manually from the Actions tab.
 
 ## Testing Policy for Pull Requests
 

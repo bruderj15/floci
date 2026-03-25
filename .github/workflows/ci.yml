@@ -1,16 +1,16 @@
 name: CI
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-      - develop
+  pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  test:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
@@ -22,5 +22,5 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build and test
-        run: mvn clean verify -B
+      - name: Run tests
+        run: mvn test -B
