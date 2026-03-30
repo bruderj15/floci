@@ -960,13 +960,28 @@ public class S3Service {
         return Optional.empty();
     }
 
+    /**
+     * Matches an AllowedOrigin pattern against a concrete Origin header value.
+     *
+     * <p>AWS S3 CORS allows at most one {@code *} wildcard anywhere in the pattern
+     * (e.g. {@code *}, {@code http://*.example.com}, {@code http://app-*.example.com}).
+     * The {@code *} matches zero or more characters at that position in the origin string.
+     * The concrete Origin is always treated as an exact scheme+host+port string.
+     */
     private static boolean matchesCorsOrigin(String pattern, String origin) {
         if ("*".equals(pattern)) return true;
-        if (pattern.startsWith("*.")) {
-            String suffix = pattern.substring(1); // includes leading dot
-            return origin.endsWith(suffix);
+        int star = pattern.indexOf('*');
+        if (star < 0) {
+            return pattern.equals(origin);
         }
-        return pattern.equals(origin);
+        // Single wildcard: split into prefix and suffix around the '*'
+        String prefix = pattern.substring(0, star);
+        String suffix = pattern.substring(star + 1);
+        // The wildcard may match zero or more characters, so the origin must be at
+        // least as long as prefix+suffix combined (no overlap allowed).
+        return origin.length() >= prefix.length() + suffix.length()
+                && origin.startsWith(prefix)
+                && origin.endsWith(suffix);
     }
 
     public void putBucketCors(String bucketName, String cors) {

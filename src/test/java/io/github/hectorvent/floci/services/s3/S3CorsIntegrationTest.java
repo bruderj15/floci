@@ -59,6 +59,36 @@ class S3CorsIntegrationTest {
             "  </CORSRule>" +
             "</CORSConfiguration>";
 
+    /**
+     * Subdomain wildcard: http://*.example.com — covers http://foo.example.com,
+     * http://app.example.com, etc., but NOT https://foo.example.com.
+     */
+    private static final String SUBDOMAIN_WILDCARD_CORS_XML =
+            "<CORSConfiguration>" +
+            "  <CORSRule>" +
+            "    <AllowedOrigin>http://*.example.com</AllowedOrigin>" +
+            "    <AllowedMethod>GET</AllowedMethod>" +
+            "    <AllowedMethod>PUT</AllowedMethod>" +
+            "    <AllowedHeader>*</AllowedHeader>" +
+            "    <ExposeHeader>ETag</ExposeHeader>" +
+            "    <MaxAgeSeconds>120</MaxAgeSeconds>" +
+            "  </CORSRule>" +
+            "</CORSConfiguration>";
+
+    /**
+     * Mid-string wildcard: http://app-*.example.com — covers http://app-v1.example.com,
+     * http://app-staging.example.com, etc.
+     */
+    private static final String MID_WILDCARD_CORS_XML =
+            "<CORSConfiguration>" +
+            "  <CORSRule>" +
+            "    <AllowedOrigin>http://app-*.example.com</AllowedOrigin>" +
+            "    <AllowedMethod>GET</AllowedMethod>" +
+            "    <AllowedHeader>*</AllowedHeader>" +
+            "    <MaxAgeSeconds>60</MaxAgeSeconds>" +
+            "  </CORSRule>" +
+            "</CORSConfiguration>";
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     @Test
@@ -422,5 +452,190 @@ class S3CorsIntegrationTest {
         .then()
             .statusCode(200)
             .header("Access-Control-Allow-Origin", nullValue());
+    }
+
+    // ── Glob / wildcard origin matching ───────────────────────────────────────
+
+    @Test
+    @Order(60)
+    void putCorsConfigWithSubdomainWildcard() {
+        given()
+            .contentType("application/xml")
+            .body(SUBDOMAIN_WILDCARD_CORS_XML)
+        .when()
+            .put("/" + BUCKET + "?cors")
+        .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @Order(61)
+    void preflightSubdomainWildcardMatchesSubdomain() {
+        given()
+            .header("Origin", "http://foo.example.com")
+            .header("Access-Control-Request-Method", "GET")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(200)
+            .header("Access-Control-Allow-Origin", equalTo("http://foo.example.com"));
+    }
+
+    @Test
+    @Order(62)
+    void preflightSubdomainWildcardMatchesDeeperSubdomain() {
+        // * matches any string, including one with dots, so bar.baz.example.com is valid
+        given()
+            .header("Origin", "http://bar.baz.example.com")
+            .header("Access-Control-Request-Method", "PUT")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(200)
+            .header("Access-Control-Allow-Origin", equalTo("http://bar.baz.example.com"));
+    }
+
+    @Test
+    @Order(63)
+    void preflightSubdomainWildcardRejectsDifferentScheme() {
+        // Pattern is http://* so https:// must not match
+        given()
+            .header("Origin", "https://foo.example.com")
+            .header("Access-Control-Request-Method", "GET")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @Order(64)
+    void preflightSubdomainWildcardRejectsDifferentDomain() {
+        given()
+            .header("Origin", "http://foo.other.com")
+            .header("Access-Control-Request-Method", "GET")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @Order(65)
+    void putCorsConfigWithMidStringWildcard() {
+        given()
+            .contentType("application/xml")
+            .body(MID_WILDCARD_CORS_XML)
+        .when()
+            .put("/" + BUCKET + "?cors")
+        .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @Order(66)
+    void preflightMidStringWildcardMatchesVariant() {
+        given()
+            .header("Origin", "http://app-v1.example.com")
+            .header("Access-Control-Request-Method", "GET")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(200)
+            .header("Access-Control-Allow-Origin", equalTo("http://app-v1.example.com"));
+    }
+
+    @Test
+    @Order(67)
+    void preflightMidStringWildcardMatchesAnotherVariant() {
+        given()
+            .header("Origin", "http://app-staging.example.com")
+            .header("Access-Control-Request-Method", "GET")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(200)
+            .header("Access-Control-Allow-Origin", equalTo("http://app-staging.example.com"));
+    }
+
+    @Test
+    @Order(68)
+    void preflightMidStringWildcardRejectsNonMatchingPrefix() {
+        // "web-v1.example.com" does not start with "app-"
+        given()
+            .header("Origin", "http://web-v1.example.com")
+            .header("Access-Control-Request-Method", "GET")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @Order(69)
+    void wildcardMatchAllowsZeroCharactersForStar() {
+        // http://app-.example.com — the * matches the empty string
+        given()
+            .header("Origin", "http://app-.example.com")
+            .header("Access-Control-Request-Method", "GET")
+        .when()
+            .options("/" + BUCKET + "/k")
+        .then()
+            .statusCode(200)
+            .header("Access-Control-Allow-Origin", equalTo("http://app-.example.com"));
+    }
+
+    // ── Vary header is not duplicated on repeated actual requests ─────────────
+
+    @Test
+    @Order(70)
+    void putCorsConfigWildcardForVaryTest() {
+        given()
+            .contentType("application/xml")
+            .body(WILDCARD_CORS_XML)
+        .when()
+            .put("/" + BUCKET + "?cors")
+        .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @Order(71)
+    void varyOriginAppearsExactlyOnceOnActualRequest() {
+        // Collect the raw Vary header values and count "Origin" occurrences
+        String vary = given()
+            .header("Origin", "http://localhost:3000")
+        .when()
+            .get("/" + BUCKET + "/hello.txt")
+        .then()
+            .statusCode(200)
+            .header("Access-Control-Allow-Origin", equalTo("*"))
+            .extract().header("Vary");
+
+        // Vary may be a single comma-separated string or multiple header lines;
+        // either way "Origin" should appear exactly once.
+        long count = java.util.Arrays.stream(vary.split(","))
+                .map(String::trim)
+                .filter("Origin"::equalsIgnoreCase)
+                .count();
+        org.junit.jupiter.api.Assertions.assertEquals(1, count,
+                "Vary: Origin should appear exactly once, got: " + vary);
+    }
+
+    @Test
+    @Order(72)
+    void accessControlAllowOriginAppearsExactlyOnce() {
+        io.restassured.response.Response resp = given()
+            .header("Origin", "http://localhost:3000")
+        .when()
+            .get("/" + BUCKET + "/hello.txt")
+        .then()
+            .statusCode(200)
+            .extract().response();
+
+        // getHeaders() returns all values including duplicates
+        long count = resp.headers().getList("Access-Control-Allow-Origin").stream().count();
+        org.junit.jupiter.api.Assertions.assertEquals(1, count,
+                "Access-Control-Allow-Origin must appear exactly once");
     }
 }
