@@ -6,6 +6,7 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.Provider;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,10 +43,25 @@ public class S3CorsFilter implements ContainerResponseFilter {
 
         S3Service.CorsEvalResult cors = evalResult.get();
         MultivaluedMap<String, Object> headers = responseContext.getHeaders();
-        headers.add("Access-Control-Allow-Origin", cors.allowedOrigin());
-        headers.add("Vary", "Origin");
+
+        // putSingle replaces any value already set by a resource method or earlier filter,
+        // preventing duplicate Access-Control-Allow-Origin / Expose-Headers entries.
+        headers.putSingle("Access-Control-Allow-Origin", cors.allowedOrigin());
+
+        // Merge "Origin" into Vary without duplicating it; Vary may already carry other
+        // tokens (e.g. "Accept-Encoding") added by the JAX-RS runtime or other filters.
+        boolean varyHasOrigin = Optional.ofNullable(headers.get("Vary"))
+                .orElse(List.of())
+                .stream()
+                .anyMatch(v -> Arrays.stream(v.toString().split(","))
+                        .map(String::trim)
+                        .anyMatch("Origin"::equalsIgnoreCase));
+        if (!varyHasOrigin) {
+            headers.add("Vary", "Origin");
+        }
+
         if (!cors.exposeHeaders().isEmpty()) {
-            headers.add("Access-Control-Expose-Headers", String.join(", ", cors.exposeHeaders()));
+            headers.putSingle("Access-Control-Expose-Headers", String.join(", ", cors.exposeHeaders()));
         }
     }
 
