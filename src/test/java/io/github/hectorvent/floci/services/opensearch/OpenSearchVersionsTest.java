@@ -2,6 +2,8 @@ package io.github.hectorvent.floci.services.opensearch;
 
 import io.github.hectorvent.floci.core.common.AwsException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +13,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,20 +26,40 @@ class OpenSearchVersionsTest {
     @Test
     void supportedVersionsIncludesOpenSearch3xAnd2xLatest() {
         assertThat(OpenSearchVersions.supportedVersions(),
-                hasItems("OpenSearch_3.6", "OpenSearch_3.0",
+                hasItems("OpenSearch_3.9", "OpenSearch_3.0",
                         "OpenSearch_2.19", "Elasticsearch_7.10"));
     }
 
     @Test
-    void supportedVersionsListsNewestOpenSearch3xFirst() {
-        // Newest-first is what AWS's ListVersions returns; SDK clients render
-        // dropdowns in this order, so a regression here would be user-visible.
-        List<String> versions = OpenSearchVersions.supportedVersions();
-        int os36 = versions.indexOf("OpenSearch_3.6");
-        int os213 = versions.indexOf("OpenSearch_2.13");
-        int es710 = versions.indexOf("Elasticsearch_7.10");
-        assertThat(os36, lessThan(os213));
-        assertThat(os213, lessThan(es710));
+    void supportedVersionsIncludesEveryReleasedMinorNewestFirst() {
+        assertEquals(List.of(
+                "OpenSearch_3.9", "OpenSearch_3.8", "OpenSearch_3.7", "OpenSearch_3.6",
+                "OpenSearch_3.5", "OpenSearch_3.4", "OpenSearch_3.3", "OpenSearch_3.2",
+                "OpenSearch_3.1", "OpenSearch_3.0",
+                "OpenSearch_2.19", "OpenSearch_2.18", "OpenSearch_2.17", "OpenSearch_2.16",
+                "OpenSearch_2.15", "OpenSearch_2.14", "OpenSearch_2.13", "OpenSearch_2.12",
+                "OpenSearch_2.11", "OpenSearch_2.10", "OpenSearch_2.9", "OpenSearch_2.8",
+                "OpenSearch_2.7", "OpenSearch_2.6", "OpenSearch_2.5", "OpenSearch_2.4",
+                "OpenSearch_2.3", "OpenSearch_2.2", "OpenSearch_2.1", "OpenSearch_2.0",
+                "OpenSearch_1.3", "OpenSearch_1.2", "OpenSearch_1.1", "OpenSearch_1.0",
+                "Elasticsearch_7.10", "Elasticsearch_7.9", "Elasticsearch_7.8"),
+                OpenSearchVersions.supportedVersions());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "OpenSearch_3.9,3.9.0", "OpenSearch_3.8,3.8.0", "OpenSearch_3.7,3.7.0",
+            "OpenSearch_2.18,2.18.0", "OpenSearch_2.16,2.16.0", "OpenSearch_2.14,2.14.0",
+            "OpenSearch_2.12,2.12.0", "OpenSearch_2.10,2.10.0", "OpenSearch_2.8,2.8.0",
+            "OpenSearch_2.6,2.6.0", "OpenSearch_2.4,2.4.1", "OpenSearch_2.2,2.2.1",
+            "OpenSearch_2.1,2.1.0", "OpenSearch_2.0,2.0.1",
+            "OpenSearch_1.1,1.1.0", "OpenSearch_1.0,1.0.1"
+    })
+    void addedVersionsValidateAndResolvePinnedImages(String engineVersion, String imageTag) {
+        assertDoesNotThrow(() -> OpenSearchVersions.validate(engineVersion));
+        String expectedImage = "opensearchproject/opensearch:" + imageTag;
+        assertEquals(expectedImage, OpenSearchVersions.imageFor(engineVersion));
+        assertEquals(expectedImage, OpenSearchVersions.resolveImage(Optional.empty(), engineVersion));
     }
 
     @Test
@@ -58,7 +79,9 @@ class OpenSearchVersionsTest {
 
     @Test
     void imageForReturnsDefaultWhenEngineVersionOmitted() {
+        assertEquals("OpenSearch_2.19", OpenSearchVersions.DEFAULT_VERSION);
         String defaultImage = OpenSearchVersions.imageFor(OpenSearchVersions.DEFAULT_VERSION);
+        assertEquals("opensearchproject/opensearch:2.19.5", defaultImage);
         assertEquals(defaultImage, OpenSearchVersions.imageFor(null));
         assertEquals(defaultImage, OpenSearchVersions.imageFor(""));
     }

@@ -39,8 +39,11 @@ public final class OpenSearchVersions {
     private static final Map<String, List<String>> COMPAT_MATRIX = new LinkedHashMap<>();
 
     static {
-        // OpenSearch 3.x line — pinned to a concrete image tag rather than the
+        // OpenSearch 3.x line, pinned to a concrete image tag rather than the
         // floating "3" alias so test runs are reproducible.
+        VERSION_TO_IMAGE.put("OpenSearch_3.9", "opensearchproject/opensearch:3.9.0");
+        VERSION_TO_IMAGE.put("OpenSearch_3.8", "opensearchproject/opensearch:3.8.0");
+        VERSION_TO_IMAGE.put("OpenSearch_3.7", "opensearchproject/opensearch:3.7.0");
         VERSION_TO_IMAGE.put("OpenSearch_3.6", "opensearchproject/opensearch:3.6.0");
         VERSION_TO_IMAGE.put("OpenSearch_3.5", "opensearchproject/opensearch:3.5.0");
         VERSION_TO_IMAGE.put("OpenSearch_3.4", "opensearchproject/opensearch:3.4.0");
@@ -49,21 +52,34 @@ public final class OpenSearchVersions {
         VERSION_TO_IMAGE.put("OpenSearch_3.1", "opensearchproject/opensearch:3.1.0");
         VERSION_TO_IMAGE.put("OpenSearch_3.0", "opensearchproject/opensearch:3.0.0");
 
-        // OpenSearch 2.x — keep the historical entries Floci already accepted,
-        // bump the head to 2.19.5 (current latest 2.x as of 2026-05).
+        // OpenSearch 2.x, including upstream releases outside AWS's managed-service catalog.
+        // Preserve existing patch pins when adding missing minor versions.
         VERSION_TO_IMAGE.put("OpenSearch_2.19", "opensearchproject/opensearch:2.19.5");
+        VERSION_TO_IMAGE.put("OpenSearch_2.18", "opensearchproject/opensearch:2.18.0");
         VERSION_TO_IMAGE.put("OpenSearch_2.17", "opensearchproject/opensearch:2.17.1");
+        VERSION_TO_IMAGE.put("OpenSearch_2.16", "opensearchproject/opensearch:2.16.0");
         VERSION_TO_IMAGE.put("OpenSearch_2.15", "opensearchproject/opensearch:2.15.0");
+        VERSION_TO_IMAGE.put("OpenSearch_2.14", "opensearchproject/opensearch:2.14.0");
         VERSION_TO_IMAGE.put("OpenSearch_2.13", "opensearchproject/opensearch:2.13.0");
+        VERSION_TO_IMAGE.put("OpenSearch_2.12", "opensearchproject/opensearch:2.12.0");
         VERSION_TO_IMAGE.put("OpenSearch_2.11", "opensearchproject/opensearch:2.11.1");
+        VERSION_TO_IMAGE.put("OpenSearch_2.10", "opensearchproject/opensearch:2.10.0");
         VERSION_TO_IMAGE.put("OpenSearch_2.9", "opensearchproject/opensearch:2.9.0");
+        VERSION_TO_IMAGE.put("OpenSearch_2.8", "opensearchproject/opensearch:2.8.0");
         VERSION_TO_IMAGE.put("OpenSearch_2.7", "opensearchproject/opensearch:2.7.0");
+        VERSION_TO_IMAGE.put("OpenSearch_2.6", "opensearchproject/opensearch:2.6.0");
         VERSION_TO_IMAGE.put("OpenSearch_2.5", "opensearchproject/opensearch:2.5.0");
+        VERSION_TO_IMAGE.put("OpenSearch_2.4", "opensearchproject/opensearch:2.4.1");
         VERSION_TO_IMAGE.put("OpenSearch_2.3", "opensearchproject/opensearch:2.3.0");
+        VERSION_TO_IMAGE.put("OpenSearch_2.2", "opensearchproject/opensearch:2.2.1");
+        VERSION_TO_IMAGE.put("OpenSearch_2.1", "opensearchproject/opensearch:2.1.0");
+        VERSION_TO_IMAGE.put("OpenSearch_2.0", "opensearchproject/opensearch:2.0.1");
 
         // OpenSearch 1.x — kept for legacy upgrade paths (1.x → 2.x).
         VERSION_TO_IMAGE.put("OpenSearch_1.3", "opensearchproject/opensearch:1.3.20");
         VERSION_TO_IMAGE.put("OpenSearch_1.2", "opensearchproject/opensearch:1.2.4");
+        VERSION_TO_IMAGE.put("OpenSearch_1.1", "opensearchproject/opensearch:1.1.0");
+        VERSION_TO_IMAGE.put("OpenSearch_1.0", "opensearchproject/opensearch:1.0.1");
 
         // Elasticsearch 7.x — last Apache-2 OSS line. Image is on Elastic's
         // registry, not Docker Hub; image string includes the host so the
