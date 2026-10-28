@@ -247,13 +247,13 @@ class ElasticsearchIntegrationTest {
         given()
             .contentType("application/json")
             .header("Authorization", AUTH_HEADER)
-            .body("{\"DomainName\":\"legacy-es-os\",\"ElasticsearchVersion\":\"OS_3.9\","
+            .body("{\"DomainName\":\"legacy-es-os\",\"ElasticsearchVersion\":\"OS_3.7\","
                     + "\"ElasticsearchClusterConfig\":{\"InstanceType\":\"r6g.large.elasticsearch\"}}")
         .when()
             .post("/2015-01-01/es/domain")
         .then()
             .statusCode(200)
-            .body("DomainStatus.ElasticsearchVersion", equalTo("OpenSearch_3.9"))
+            .body("DomainStatus.ElasticsearchVersion", equalTo("OpenSearch_3.7"))
             .body("DomainStatus.ElasticsearchClusterConfig.InstanceType", equalTo("r6g.large.elasticsearch"));
 
         given()
@@ -262,7 +262,7 @@ class ElasticsearchIntegrationTest {
             .get("/2021-01-01/opensearch/domain/legacy-es-os")
         .then()
             .statusCode(200)
-            .body("DomainStatus.EngineVersion", equalTo("OpenSearch_3.9"))
+            .body("DomainStatus.EngineVersion", equalTo("OpenSearch_3.7"))
             .body("DomainStatus.ClusterConfig.InstanceType", equalTo("r6g.large.search"));
 
         given()

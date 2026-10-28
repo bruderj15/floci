@@ -4,6 +4,7 @@ import io.github.hectorvent.floci.core.common.AwsException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,21 +27,16 @@ class OpenSearchVersionsTest {
     @Test
     void supportedVersionsIncludesOpenSearch3xAnd2xLatest() {
         assertThat(OpenSearchVersions.supportedVersions(),
-                hasItems("OpenSearch_3.9", "OpenSearch_3.0",
+                hasItems("OpenSearch_3.7", "OpenSearch_3.1",
                         "OpenSearch_2.19", "Elasticsearch_7.10"));
     }
 
     @Test
-    void supportedVersionsIncludesEveryReleasedMinorNewestFirst() {
+    void supportedVersionsMatchesAwsManagedServiceCatalogNewestFirst() {
         assertEquals(List.of(
-                "OpenSearch_3.9", "OpenSearch_3.8", "OpenSearch_3.7", "OpenSearch_3.6",
-                "OpenSearch_3.5", "OpenSearch_3.4", "OpenSearch_3.3", "OpenSearch_3.2",
-                "OpenSearch_3.1", "OpenSearch_3.0",
-                "OpenSearch_2.19", "OpenSearch_2.18", "OpenSearch_2.17", "OpenSearch_2.16",
-                "OpenSearch_2.15", "OpenSearch_2.14", "OpenSearch_2.13", "OpenSearch_2.12",
-                "OpenSearch_2.11", "OpenSearch_2.10", "OpenSearch_2.9", "OpenSearch_2.8",
-                "OpenSearch_2.7", "OpenSearch_2.6", "OpenSearch_2.5", "OpenSearch_2.4",
-                "OpenSearch_2.3", "OpenSearch_2.2", "OpenSearch_2.1", "OpenSearch_2.0",
+                "OpenSearch_3.7", "OpenSearch_3.6", "OpenSearch_3.5", "OpenSearch_3.3", "OpenSearch_3.1",
+                "OpenSearch_2.19", "OpenSearch_2.17", "OpenSearch_2.15", "OpenSearch_2.13", "OpenSearch_2.11",
+                "OpenSearch_2.9", "OpenSearch_2.7", "OpenSearch_2.5", "OpenSearch_2.3",
                 "OpenSearch_1.3", "OpenSearch_1.2", "OpenSearch_1.1", "OpenSearch_1.0",
                 "Elasticsearch_7.10", "Elasticsearch_7.9", "Elasticsearch_7.8"),
                 OpenSearchVersions.supportedVersions());
@@ -48,18 +44,32 @@ class OpenSearchVersionsTest {
 
     @ParameterizedTest
     @CsvSource({
-            "OpenSearch_3.9,3.9.0", "OpenSearch_3.8,3.8.0", "OpenSearch_3.7,3.7.0",
-            "OpenSearch_2.18,2.18.0", "OpenSearch_2.16,2.16.0", "OpenSearch_2.14,2.14.0",
-            "OpenSearch_2.12,2.12.0", "OpenSearch_2.10,2.10.0", "OpenSearch_2.8,2.8.0",
-            "OpenSearch_2.6,2.6.0", "OpenSearch_2.4,2.4.1", "OpenSearch_2.2,2.2.1",
-            "OpenSearch_2.1,2.1.0", "OpenSearch_2.0,2.0.1",
-            "OpenSearch_1.1,1.1.0", "OpenSearch_1.0,1.0.1"
+            "OpenSearch_3.7,3.7.0", "OpenSearch_1.1,1.1.0", "OpenSearch_1.0,1.0.1"
     })
     void addedVersionsValidateAndResolvePinnedImages(String engineVersion, String imageTag) {
         assertDoesNotThrow(() -> OpenSearchVersions.validate(engineVersion));
         String expectedImage = "opensearchproject/opensearch:" + imageTag;
         assertEquals(expectedImage, OpenSearchVersions.imageFor(engineVersion));
         assertEquals(expectedImage, OpenSearchVersions.resolveImage(Optional.empty(), engineVersion));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "OpenSearch_3.9", "OpenSearch_3.8", "OpenSearch_3.4", "OpenSearch_3.2", "OpenSearch_3.0",
+            "OpenSearch_2.18", "OpenSearch_2.16", "OpenSearch_2.14", "OpenSearch_2.12",
+            "OpenSearch_2.10", "OpenSearch_2.8", "OpenSearch_2.6", "OpenSearch_2.4",
+            "OpenSearch_2.2", "OpenSearch_2.1", "OpenSearch_2.0"
+    })
+    void versionsUnavailableOnAwsAreRejected(String engineVersion) {
+        AwsException validationError = assertThrows(AwsException.class,
+                () -> OpenSearchVersions.validate(engineVersion));
+        assertEquals("ValidationException", validationError.getErrorCode());
+        AwsException imageError = assertThrows(AwsException.class,
+                () -> OpenSearchVersions.imageFor(engineVersion));
+        assertEquals("ValidationException", imageError.getErrorCode());
+        AwsException upgradeError = assertThrows(AwsException.class,
+                () -> OpenSearchVersions.validateUpgrade("OpenSearch_2.19", engineVersion));
+        assertEquals("ValidationException", upgradeError.getErrorCode());
     }
 
     @Test
@@ -97,7 +107,7 @@ class OpenSearchVersionsTest {
     void validateAllowsBlankAndKnownVersions() {
         assertDoesNotThrow(() -> OpenSearchVersions.validate(null));
         assertDoesNotThrow(() -> OpenSearchVersions.validate(""));
-        assertDoesNotThrow(() -> OpenSearchVersions.validate("OpenSearch_3.0"));
+        assertDoesNotThrow(() -> OpenSearchVersions.validate("OpenSearch_3.1"));
         assertDoesNotThrow(() -> OpenSearchVersions.validate("Elasticsearch_7.10"));
     }
 
@@ -112,7 +122,18 @@ class OpenSearchVersionsTest {
         // 2.19 is the documented bridge into the 3.x line — without this, AWS
         // SDK clients can't render an upgrade picker that reaches 3.x at all.
         assertThat(OpenSearchVersions.compatibleTargets("OpenSearch_2.19"),
-                hasItem("OpenSearch_3.0"));
+                hasItem("OpenSearch_3.1"));
+    }
+
+    @Test
+    void compatibilityMatrixContainsOnlySupportedVersions() {
+        List<String> supportedVersions = OpenSearchVersions.supportedVersions();
+        OpenSearchVersions.compatibilityMatrix().forEach((sourceVersion, targetVersions) -> {
+            assertThat(supportedVersions, hasItem(sourceVersion));
+            for (String targetVersion : targetVersions) {
+                assertThat(supportedVersions, hasItem(targetVersion));
+            }
+        });
     }
 
     @Test
@@ -132,19 +153,19 @@ class OpenSearchVersionsTest {
     @Test
     void validateUpgradeRejects2xTo3xWithoutGoingThroughLatest2x() {
         // AWS docs require 1.3 / 2.x domains to upgrade to 2.19 before going
-        // to 3.x. 2.13 / 2.15 / 2.17 → 3.0 must be rejected.
+        // to 3.x. 2.13 / 2.15 / 2.17 → 3.1 must be rejected.
         assertThrows(AwsException.class,
-                () -> OpenSearchVersions.validateUpgrade("OpenSearch_2.13", "OpenSearch_3.0"));
+                () -> OpenSearchVersions.validateUpgrade("OpenSearch_2.13", "OpenSearch_3.1"));
         assertThrows(AwsException.class,
-                () -> OpenSearchVersions.validateUpgrade("OpenSearch_2.15", "OpenSearch_3.0"));
+                () -> OpenSearchVersions.validateUpgrade("OpenSearch_2.15", "OpenSearch_3.1"));
         assertThrows(AwsException.class,
-                () -> OpenSearchVersions.validateUpgrade("OpenSearch_2.17", "OpenSearch_3.0"));
+                () -> OpenSearchVersions.validateUpgrade("OpenSearch_2.17", "OpenSearch_3.1"));
     }
 
     @Test
     void validateUpgradeAcceptsDocumentedHop() {
         assertDoesNotThrow(() -> OpenSearchVersions.validateUpgrade("OpenSearch_2.11", "OpenSearch_2.13"));
-        assertDoesNotThrow(() -> OpenSearchVersions.validateUpgrade("OpenSearch_2.19", "OpenSearch_3.0"));
+        assertDoesNotThrow(() -> OpenSearchVersions.validateUpgrade("OpenSearch_2.19", "OpenSearch_3.1"));
         assertDoesNotThrow(() -> OpenSearchVersions.validateUpgrade("Elasticsearch_7.10", "OpenSearch_2.19"));
     }
 
